@@ -10,11 +10,11 @@ class Car:
         self.a = acceleration
         self.ret = retardation
         self.pos = position
-        self.v = v_max
+        self.v = int(v_max * 0.9)
         self.pre_car = None
 
     def __repr__(self) -> str:
-        return "Car(id=%i, v=%i, r=%i, a=%i, pos=%i, v_max=%i)" % (self.id, self.v, self.r, self.a, self.pos, self.v_max)
+        return "Car(id=%i, v=%i, r=%i, a=%i, ret=%i, pos=%i, v_max=%i)" % (self.id, self.v, self.r, self.a, self.ret, self.pos, self.v_max)
 
     def d_max(self) -> int:
         return int(-self.v**2 / (2*self.ret) + self.r * self.v)
@@ -29,12 +29,12 @@ class MemCell:
 
 Memory = list[list[MemCell]]
 
-N = 30
-V_MAX = 3000
-D_TOT = 31415
-REACTION_TIME = 2
-ACCELERATION = 30
-RETARDATION = -20
+N = 40
+V_MAX = 500
+D_TOT = 500 * 2 * N
+REACTION_TIME = 10
+ACCELERATION = 100
+RETARDATION = -300
 DT = 1
 
 def setup_cars() -> tuple[list[Car], Memory]:
@@ -47,9 +47,9 @@ def setup_cars() -> tuple[list[Car], Memory]:
             time_instance.append(MemCell(car.v, car.pos))
         memory.append(time_instance)
 
-    # cars[0].v = int(cars[0].v / 5)
+    cars[0].v = 0
     cars[1].v = 0
-    # cars[2].v = 0
+    cars[2].v = 0
     print(cars[1].pos - cars[0].pos)
     return cars, memory
 
@@ -62,13 +62,34 @@ def move(car : Car, pre_mem : MemCell, pre_car : Car, dt : int) -> None:
     # print(car.v)
     if -10000 < (pre_car.pos - car.pos) < 0:
         print("CRASH!!!")
-        print(car)
-    if car.d_max() > ((pre_mem.pos - car.pos) % D_TOT) and car.v < car.v_max: # if car in front is far enough away, and we aren't speeding -> accelerate
+        print(car, pre_car)
+    if car.v > car.v_max:
+        car.v = car.v_max
+    dist = (pre_car.pos - car.pos) % D_TOT
+    if car.d_max() < dist and car.v < car.v_max: # if car in front is far enough away, and we aren't speeding -> accelerate
+        if car.id == N-1:
+            print("d_max:", car.d_max())
         car.v += car.a * dt
-    elif car.v > pre_mem.v or car.v >= car.v_max: # if we are close and we are faster than car in front, or we are moving over our max speed -> slow down
-        car.v = max(car.v + car.ret * dt, 0)
-    else: # if we are moving slower than the car in front -> accelerate
+    elif car.v > pre_mem.v: # if we are close and we are faster than car in front, or we are moving over our max speed -> slow down
+        delta_v = car.v - pre_mem.v
+        ret = max(int(-1.1*(delta_v)**2/(2*(dist))), car.ret)
+        if car.id == N-1:
+            print("retardate!")
+            print("car.v:", car.v, "pre_mem.v:", pre_mem.v, "dist:", dist, "delta_v:", delta_v, "car.r:", car.r)
+            print("ret: ", ret)
+            # print(car)
+        car.v = max(car.v + ret * dt, 0)
+    elif car.v < pre_mem.v: # if we are moving slower than the car in front -> accelerate
+        if car.id == N-1:
+            print("accelerate!")
         car.v += car.a * dt
+    # else:
+    #     if car.id == N-1:
+    #         print("do nothing!")
+    #         print("speed diff: ", car.v - pre_mem.v)
+    # else:
+    #     print(car.v - pre_mem.v)
+    #     print("WOW WHAT A BIG DUM-DUM YOU ARE! (if it doesn't say 0 above)")
     car.pos = (car.pos + car.v * dt) % D_TOT
 
 def update(cars : list[Car], memory : Memory) -> None:
@@ -100,6 +121,7 @@ def draw(cars : list[Car], memory : Memory) -> None:
 
     anim = FuncAnimation(fig, animate, init_func=init, interval=40, blit=True)
     plt.show()
+    print([car.v for car in cars])
 
 def main() -> None:
     cars, memory = setup_cars()
