@@ -30,7 +30,7 @@ Memory = list[list[MemCell]]
 N = 50
 K = 1
 V_MAX = 400 * K
-D_TOT = 31415 * K
+D_TOT = 30000 * K
 REACTION_TIME = 5 * K
 ACCELERATION = 30 * K
 RETARDATION = -30 * K
@@ -39,13 +39,13 @@ DT = 1
 def dev(avg : int, key : str) -> int:
     match key:
         case "v":
-            return round(avg + np.random.gamma(10, 0.4) - 5)
+            return round(avg + np.random.gamma(10, 1) - 5)
         case "r":
-            return np.random.randint(avg, avg + 2)
+            return np.random.randint(avg, avg + 3)
         case "a":
-            return np.random.randint(avg - 3, avg + 3)
+            return np.random.randint(avg - 5, avg + 5)
         case "ret":
-            return np.random.randint(avg - 3, avg + 3)
+            return np.random.randint(avg - 5, avg + 5)
 
 
 def setup_cars() -> tuple[list[Car], Memory]:
@@ -60,9 +60,9 @@ def setup_cars() -> tuple[list[Car], Memory]:
             time_instance.append(MemCell(car.v, car.pos))
         memory.append(time_instance)
 
-    cars[0].v = 0
-    cars[1].v = 0
-    cars[2].v = 0
+    cars[17].v = 0
+    # cars[1].v = 0
+    # cars[2].v = 0
     return cars, memory
 
 def update_mem(mem : Memory, new_mem_row : list[MemCell]) -> Memory:
@@ -74,10 +74,10 @@ def move(car : Car, pre_mem : MemCell, pre_car : Car, dt : int) -> None:
     #     print("CRASH!!!")
     #     print(car, pre_car)
     if car.v > pre_mem.v:
-        car.v -= car.a * dt
+        car.v = max(car.v - car.a * dt, 0)
     elif car.v >= car.v_max:
         car.v = car.v_max
-    else:
+    elif car.v < pre_mem.v:
         car.v += car.a * dt
     car.pos = (car.pos + car.v * dt) % D_TOT
 
@@ -119,8 +119,10 @@ def draw(cars : list[Car], memory : Memory) -> None:
         return fig, axis, line
 
     def animate_pos(frame, line):
-        diffs = np.diff([car.pos for car in cars])
-        line.set_data(range(len(cars) - 1), diffs)
+        diffs = np.append(np.diff([car.pos for car in cars]), cars[0].pos - cars[N-1].pos)
+        mod_diffs = [max(d, 0) % D_TOT for d in diffs]
+        print(mod_diffs)
+        line.set_data(range(len(cars)), mod_diffs)
         return line,
 
     def animate_speeds(frame, line):
@@ -130,11 +132,11 @@ def draw(cars : list[Car], memory : Memory) -> None:
         return line,
 
     car_fig, car_ax, car_line = make_car_figure()
-    # pos_fig, pos_ax, pos_line = make_figure("Difference in positions", 2000)
+    # pos_fig, pos_ax, pos_line = make_figure("Difference in positions", D_TOT)
     v_fig, v_ax, v_line = make_figure("Speeds", V_MAX + 20)
     car_anim = FuncAnimation(car_fig, partial(animate_cars, line=car_line), init_func=partial(init_cars, axis=car_ax, line=car_line), interval=40, blit=True)
     # pos_anim = FuncAnimation(pos_fig, partial(animate_pos, line=pos_line), interval=40, blit=True)
-    v_anim = FuncAnimation(v_fig, partial(animate_speeds, line=v_line), interval=40, blit=True)
+    v_anim = FuncAnimation(v_fig, partial(animate_speeds, line=v_line), interval=20, blit=True)
     plt.show()
     print([car.v for car in cars])
 
