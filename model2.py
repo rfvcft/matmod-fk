@@ -89,7 +89,6 @@ def move(car : Car, pre_mem : MemCell, pre_car : Car, dt : int) -> None:
     #         print("speed diff: ", car.v - pre_mem.v)
     # else:
     #     print(car.v - pre_mem.v)
-    #     print("WOW WHAT A BIG DUM-DUM YOU ARE! (if it doesn't say 0 above)")
     car.pos = (car.pos + car.v * dt) % D_TOT
 
 def update(cars : list[Car], memory : Memory) -> None:

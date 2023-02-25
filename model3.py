@@ -29,12 +29,13 @@ Memory = list[list[MemCell]]
 
 N = 50
 K = 1
-V_MAX = 400 * K
+V_MAX = 200 * K
 D_TOT = 30000 * K
-REACTION_TIME = 5 * K
-ACCELERATION = 30 * K
-RETARDATION = -30 * K
+REACTION_TIME = 4 * K
+ACCELERATION = 20 * K
+RETARDATION = -20 * K
 DT = 1
+WAVE_SPEED = []
 
 def dev(avg : int, key : str) -> int:
     match key:
@@ -49,8 +50,8 @@ def dev(avg : int, key : str) -> int:
 
 
 def setup_cars() -> tuple[list[Car], Memory]:
-    cars = [Car(i, dev(V_MAX, "v"), dev(REACTION_TIME, "r"), dev(ACCELERATION, "a"), dev(RETARDATION, "ret"), int(i/N*D_TOT), int(0.8 * V_MAX)) for i in range(N)]
-    # cars = [Car(i, V_MAX, REACTION_TIME, ACCELERATION, RETARDATION, int(i/N*D_TOT), int(0.8 * V_MAX)) for i in range(N)]
+    # cars = [Car(i, dev(V_MAX, "v"), dev(REACTION_TIME, "r"), dev(ACCELERATION, "a"), dev(RETARDATION, "ret"), int(i/N*D_TOT), int(0.81 * V_MAX)) for i in range(N)]
+    cars = [Car(i, V_MAX, REACTION_TIME, ACCELERATION, RETARDATION, int(i/N*D_TOT), int(1 * V_MAX)) for i in range(N)]
     r_max = max(cars, key=lambda c: c.r).r
     memory = []
 
@@ -89,7 +90,6 @@ def update(cars : list[Car], memory : Memory) -> None:
     update_mem(memory, new_mem)
 
 def draw(cars : list[Car], memory : Memory) -> None:
-
     def make_car_figure():
         fig = plt.figure()
         axis = plt.axes(xlim=(-1.1, 1.1), ylim=(-1.1, 1.1))
@@ -108,12 +108,24 @@ def draw(cars : list[Car], memory : Memory) -> None:
         update(cars, memory)
         # thetas = [2*np.pi * memcell.pos/D_TOT for memcell in memory[0]]
         thetas = [2*np.pi * car.pos/D_TOT for car in cars]
+        min_v_car = min(cars, key=lambda c: c.v)
+        prev_min_v_mem = min(memory[0], key=lambda m: m.v)
+        wave_v_approx = ((min_v_car.pos - prev_min_v_mem.pos) % D_TOT) / DT
+        WAVE_SPEED.append(wave_v_approx)
+        # print(sum(WAVE_SPEED)/len(WAVE_SPEED))
         line.set_data(np.cos(thetas), np.sin(thetas))
         return line,
 
     def make_figure(title, y_max):
         fig = plt.figure()
         axis = plt.axes(xlim=(0, N), ylim=(0, y_max))
+        axis.set_title(title)
+        line, = axis.plot([], [])
+        return fig, axis, line
+
+    def make_wave_figure(title, y_max):
+        fig = plt.figure()
+        axis = plt.axes(ylim=(0, y_max))
         axis.set_title(title)
         line, = axis.plot([], [])
         return fig, axis, line
@@ -126,17 +138,34 @@ def draw(cars : list[Car], memory : Memory) -> None:
         return line,
 
     def animate_speeds(frame, line):
-        # print(list(zip(cars, memory[0])))
         line.set_data(range(len(cars)), [(car.v + memcell.v)/2 for car, memcell in list(zip(cars, memory[0]))])
-        # line.set_data(range(len(cars)), [car.v for car in cars])
+        return line,
+
+    def moving_average(a, n=5):
+        ret = np.cumsum(a, dtype=float)
+        ret[n:] = ret[n:] - ret[:-n]
+        return ret[n - 1:] / n
+
+    def animate_wave_speed(frame, line):
+        if len(WAVE_SPEED) > N:
+            avg_speed = moving_average(WAVE_SPEED[-N:], n=5)
+            line.set_data(range(N-4), avg_speed)
+        elif len(WAVE_SPEED) > 9:
+            avg_speed = moving_average(WAVE_SPEED[-len(WAVE_SPEED):], n=min(len(WAVE_SPEED), 5))
+            line.set_data(range((min(N, len(WAVE_SPEED) - 4))), avg_speed)
+        else:
+            avg_speed = WAVE_SPEED[-min(N, len(WAVE_SPEED)):]
+            line.set_data(range((min(N, len(WAVE_SPEED)))), avg_speed)
         return line,
 
     car_fig, car_ax, car_line = make_car_figure()
     # pos_fig, pos_ax, pos_line = make_figure("Difference in positions", D_TOT)
     v_fig, v_ax, v_line = make_figure("Speeds", V_MAX + 20)
+    # wave_fig, wave_ax, wave_line = make_figure("Wave speed", V_MAX + 200)
     car_anim = FuncAnimation(car_fig, partial(animate_cars, line=car_line), init_func=partial(init_cars, axis=car_ax, line=car_line), interval=40, blit=True)
     # pos_anim = FuncAnimation(pos_fig, partial(animate_pos, line=pos_line), interval=40, blit=True)
     v_anim = FuncAnimation(v_fig, partial(animate_speeds, line=v_line), interval=20, blit=True)
+    # wave_v_anim = FuncAnimation(wave_fig, partial(animate_wave_speed, line=wave_line), interval=20, blit=True)
     plt.show()
     print([car.v for car in cars])
 
