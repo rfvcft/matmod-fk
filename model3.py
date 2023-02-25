@@ -29,12 +29,12 @@ Memory = list[list[MemCell]]
 
 N = 50
 K = 1
-V_MAX = 200 * K
+V_MAX = 400 * K
 D_TOT = 30000 * K
 REACTION_TIME = 4 * K
-ACCELERATION = 20 * K
-RETARDATION = -20 * K
-DT = 1
+ACCELERATION = 50 * K
+RETARDATION = -70 * K
+DT = 0.1
 WAVE_SPEED = []
 
 def dev(avg : int, key : str) -> int:
@@ -50,8 +50,8 @@ def dev(avg : int, key : str) -> int:
 
 
 def setup_cars() -> tuple[list[Car], Memory]:
-    # cars = [Car(i, dev(V_MAX, "v"), dev(REACTION_TIME, "r"), dev(ACCELERATION, "a"), dev(RETARDATION, "ret"), int(i/N*D_TOT), int(0.81 * V_MAX)) for i in range(N)]
-    cars = [Car(i, V_MAX, REACTION_TIME, ACCELERATION, RETARDATION, int(i/N*D_TOT), int(1 * V_MAX)) for i in range(N)]
+    cars = [Car(i, dev(V_MAX, "v"), dev(REACTION_TIME, "r"), dev(ACCELERATION, "a"), dev(RETARDATION, "ret"), int(i/N*D_TOT), int(0.95 * V_MAX)) for i in range(N)]
+    # cars = [Car(i, V_MAX, REACTION_TIME, ACCELERATION, RETARDATION, int(i/N*D_TOT), int(1 * V_MAX)) for i in range(N)]
     r_max = max(cars, key=lambda c: c.r).r
     memory = []
 
@@ -61,7 +61,7 @@ def setup_cars() -> tuple[list[Car], Memory]:
             time_instance.append(MemCell(car.v, car.pos))
         memory.append(time_instance)
 
-    cars[17].v = 0
+    cars[17].v /= 2
     # cars[1].v = 0
     # cars[2].v = 0
     return cars, memory
