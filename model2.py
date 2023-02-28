@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
+from functools import partial
 
 class Car:
     def __init__(self, id : int, v_max : int, reaction_time : int, acceleration : int, retardation : int, position : int) -> None:
@@ -29,13 +30,13 @@ class MemCell:
 
 Memory = list[list[MemCell]]
 
-N = 40
-V_MAX = 500
-D_TOT = 500 * 2 * N
-REACTION_TIME = 10
-ACCELERATION = 100
-RETARDATION = -300
-DT = 1
+N = 50
+V_MAX = 400
+D_TOT = 30000
+REACTION_TIME = 4
+ACCELERATION = 50
+RETARDATION = -70
+DT = 0.1
 
 def setup_cars() -> tuple[list[Car], Memory]:
     cars = [Car(i, V_MAX, REACTION_TIME, ACCELERATION, RETARDATION, int(i/N*D_TOT)) for i in range(N)]
@@ -100,25 +101,49 @@ def update(cars : list[Car], memory : Memory) -> None:
     memory = update_mem(memory, new_mem)
 
 def draw(cars : list[Car], memory : Memory) -> None:
-    fig = plt.figure()
-    axis = plt.axes(xlim=(-1.1, 1.1), ylim=(-1.1, 1.1))
-    axis.set_aspect('equal')
-    line, = axis.plot([], [], "rs")
+    def make_car_figure():
+        fig = plt.figure()
+        axis = plt.axes(xlim=(-1.1, 1.1), ylim=(-1.1, 1.1))
+        axis.set_aspect('equal')
+        line, = axis.plot([], [], "rs")
+        return fig, axis, line
 
-    def init():
+    def init_cars(axis, line):
         thetas = [2*np.pi * car.pos/D_TOT for car in cars]
         line.set_data(np.cos(thetas), np.sin(thetas))
         circle_road = plt.Circle((0, 0), 1 , fill = False)
         axis.add_artist(circle_road)
         return line,
 
-    def animate(frame):
+    def animate_cars(frame, line):
         update(cars, memory)
-        thetas = [2*np.pi * memcell.pos/D_TOT for memcell in memory[0]]
+        # thetas = [2*np.pi * memcell.pos/D_TOT for memcell in memory[0]]
+        thetas = [2*np.pi * car.pos/D_TOT for car in cars]
+        min_v_car = min(cars, key=lambda c: c.v)
+        prev_min_v_mem = min(memory[0], key=lambda m: m.v)
+        wave_v_approx = ((min_v_car.pos - prev_min_v_mem.pos) % D_TOT) / DT
         line.set_data(np.cos(thetas), np.sin(thetas))
         return line,
 
-    anim = FuncAnimation(fig, animate, init_func=init, interval=40, blit=True)
+    def make_figure(title, y_max):
+        fig = plt.figure()
+        axis = plt.axes(xlim=(0, N), ylim=(0, y_max))
+        axis.set_title(title)
+        line, = axis.plot([], [])
+        return fig, axis, line
+
+    def animate_speeds(frame, line):
+        line.set_data(range(len(cars)), [(car.v + memcell.v)/2 for car, memcell in list(zip(cars, memory[0]))])
+        return line,
+
+    car_fig, car_ax, car_line = make_car_figure()
+    # pos_fig, pos_ax, pos_line = make_figure("Difference in positions", D_TOT)
+    v_fig, v_ax, v_line = make_figure("Speeds", V_MAX + 20)
+    # wave_fig, wave_ax, wave_line = make_figure("Wave speed", V_MAX + 200)
+    car_anim = FuncAnimation(car_fig, partial(animate_cars, line=car_line), init_func=partial(init_cars, axis=car_ax, line=car_line), interval=40, blit=True)
+    # pos_anim = FuncAnimation(pos_fig, partial(animate_pos, line=pos_line), interval=40, blit=True)
+    v_anim = FuncAnimation(v_fig, partial(animate_speeds, line=v_line), interval=20, blit=True)
+    # wave_v_anim = FuncAnimation(wave_fig, partial(animate_wave_speed, line=wave_line), interval=20, blit=True)
     plt.show()
     print([car.v for car in cars])
 
