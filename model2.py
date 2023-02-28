@@ -48,10 +48,8 @@ def setup_cars() -> tuple[list[Car], Memory]:
             time_instance.append(MemCell(car.v, car.pos))
         memory.append(time_instance)
 
-    cars[0].v = 0
-    cars[1].v = 0
-    cars[2].v = 0
-    print(cars[1].pos - cars[0].pos)
+    cars[17].v /= 2
+    # print(cars[1].pos - cars[0].pos)
     return cars, memory
 
 def update_mem(mem : Memory, new_mem_row : list[MemCell]) -> Memory:
@@ -66,24 +64,27 @@ def move(car : Car, pre_mem : MemCell, pre_car : Car, dt : int) -> None:
         print(car, pre_car)
     if car.v > car.v_max:
         car.v = car.v_max
+
     dist = (pre_car.pos - car.pos) % D_TOT
-    if car.d_max() < dist and car.v < car.v_max: # if car in front is far enough away, and we aren't speeding -> accelerate
-        if car.id == N-1:
-            print("d_max:", car.d_max())
+    # if (car.d_max() < dist and car.v < car.v_max) or car.v < pre_mem.v: # if car in front is far enough away, and we aren't speeding -> accelerate
+    if car.v < pre_mem.v:
+        # if car.id == N-1:
+        #     print("d_max:", car.d_max())
         car.v += car.a * dt
     elif car.v > pre_mem.v: # if we are close and we are faster than car in front, or we are moving over our max speed -> slow down
         delta_v = car.v - pre_mem.v
-        ret = max(int(-1.1*(delta_v)**2/(2*(dist))), car.ret)
-        if car.id == N-1:
-            print("retardate!")
-            print("car.v:", car.v, "pre_mem.v:", pre_mem.v, "dist:", dist, "delta_v:", delta_v, "car.r:", car.r)
-            print("ret: ", ret)
-            # print(car)
+        ret = min(int(delta_v**2/(2*(dist - delta_v * car.r))), car.ret)
+        # ret = car.ret
+        # if car.id == N-1:
+        #     print("retardate!")
+        #     print("car.v:", car.v, "pre_mem.v:", pre_mem.v, "dist:", dist, "delta_v:", delta_v, "car.r:", car.r)
+        #     print("ret: ", ret)
+        #     # print(car)
         car.v = max(car.v + ret * dt, 0)
-    elif car.v < pre_mem.v: # if we are moving slower than the car in front -> accelerate
-        if car.id == N-1:
-            print("accelerate!")
-        car.v += car.a * dt
+    # elif car.v < pre_mem.v: # if we are moving slower than the car in front -> accelerate
+    #     if car.id == N-1:
+    #         print("accelerate!")
+    #     car.v += car.a * dt
     # else:
     #     if car.id == N-1:
     #         print("do nothing!")
