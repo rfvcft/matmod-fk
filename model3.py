@@ -50,8 +50,8 @@ def dev(avg : int, key : str) -> int:
 
 
 def setup_cars() -> tuple[list[Car], Memory]:
-    cars = [Car(i, dev(V_MAX, "v"), dev(REACTION_TIME, "r"), dev(ACCELERATION, "a"), dev(RETARDATION, "ret"), int(i/N*D_TOT), int(0.95 * V_MAX)) for i in range(N)]
-    # cars = [Car(i, V_MAX, REACTION_TIME, ACCELERATION, RETARDATION, int(i/N*D_TOT), int(1 * V_MAX)) for i in range(N)]
+    # cars = [Car(i, dev(V_MAX, "v"), dev(REACTION_TIME, "r"), dev(ACCELERATION, "a"), dev(RETARDATION, "ret"), int(i/N*D_TOT), int(0.81 * V_MAX)) for i in range(N)]
+    cars = [Car(i, V_MAX, REACTION_TIME, ACCELERATION, RETARDATION, int(i/N*D_TOT), int(1 * V_MAX)) for i in range(N)]
     r_max = max(cars, key=lambda c: c.r).r
     memory = []
 
